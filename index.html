@@ -3,42 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Escáner de Códigos</title>
+    <title>Escáner Pro - Captura Cajas</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
-        #reader { width: 100%; max-width: 500px; margin: auto; background: white; padding: 10px; border-radius: 10px; }
-        #resultado { margin-top: 20px; font-size: 1.2em; font-weight: bold; color: #007bff; word-wrap: break-word; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; padding: 20px; background-color: #1a1a1a; color: white; }
+        #reader { width: 100%; max-width: 600px; margin: auto; border: 2px solid #007bff; border-radius: 15px; overflow: hidden; background: black; }
+        .controles { margin: 20px 0; }
+        #lista-escaneos { list-style: none; padding: 0; max-width: 500px; margin: 20px auto; text-align: left; background: #2d2d2d; border-radius: 10px; }
+        #lista-escaneos li { padding: 10px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; }
+        .btn-copiar { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .btn-copiar:active { background: #218838; }
+        h2 { color: #007bff; }
     </style>
 </head>
 <body>
 
-    <h1>Escáner de Códigos</h1>
-    <p>Dale permiso a la cámara para empezar</p>
+    <h2>📦 Captura de Cajas</h2>
     
     <div id="reader"></div>
-    
-    <div id="resultado">Esperando código...</div>
+
+    <div class="controles">
+        <button class="btn-copiar" onclick="copiarLista()">📋 Copiar Lista Completa</button>
+    </div>
+
+    <h3>Historial de Escaneos:</h3>
+    <ul id="lista-escaneos"></ul>
+
+    <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
     <script>
-        function alDetectarCodigo(decodedText, decodedResult) {
-            // Lo que pasa cuando encuentra un código
-            document.getElementById('resultado').innerText = "Código detectado: " + decodedText;
-            console.log(`Código: ${decodedText}`, decodedResult);
+        const listaUI = document.getElementById('lista-escaneos');
+        const beep = document.getElementById('beep');
+        let codigosGuardados = [];
+
+        function alDetectarCodigo(decodedText) {
+            // Evitar escaneos duplicados seguidos muy rápido
+            if (codigosGuardados[0] === decodedText) return;
+
+            // 1. Sonido y Vibración
+            beep.play();
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            // 2. Guardar en la lista
+            codigosGuardados.unshift(decodedText); // Agrega al inicio
+            
+            // 3. Actualizar la pantalla
+            const nuevoElemento = document.createElement('li');
+            nuevoElemento.innerHTML = `<span>${decodedText}</span> <small>${new Date().toLocaleTimeString()}</small>`;
+            listaUI.prepend(nuevoElemento);
         }
 
-        function alTenerError(err) {
-            // Errores de lectura (normalmente se ignoran para que siga buscando)
+        function copiarLista() {
+            const textoParaCopiar = codigosGuardados.join('\n');
+            navigator.clipboard.writeText(textoParaCopiar);
+            alert("¡Lista copiada al portapapeles!");
         }
 
-        // Configuración del escáner
+        // Configuración con visor rectangular para cajas
         let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: {width: 250, height: 150} }
+            "reader", { 
+                fps: 15, 
+                qrbox: { width: 300, height: 150 }, // Rectángulo para barras
+                aspectRatio: 1.0 
+            }
         );
 
-        // Iniciar el escáner
-        html5QrcodeScanner.render(alDetectarCodigo, alTenerError);
+        html5QrcodeScanner.render(alDetectarCodigo);
     </script>
-
 </body>
 </html>
