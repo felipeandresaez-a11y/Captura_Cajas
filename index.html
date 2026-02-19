@@ -2,51 +2,142 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Captura Cajas Pro - Full</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Captura Cajas Pro - Sistema Completo</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; margin: 0; padding: 15px; background-color: #1a1a1a; color: white; }
-        #reader { width: 100%; max-width: 600px; margin: auto; border: 2px solid #007bff; border-radius: 15px; overflow: hidden; background: black; }
-        
-        .seccion-manual { background: #2d2d2d; padding: 15px; border-radius: 10px; margin: 15px auto; max-width: 500px; border: 1px dashed #555; }
-        .input-group { margin: 10px 0; display: flex; flex-direction: column; gap: 5px; text-align: left; }
-        input { padding: 10px; border-radius: 5px; border: none; font-size: 16px; }
+        /* Diseño Visual */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding: 15px; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+        }
 
-        .controles { margin: 15px 0; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        
-        #lista-escaneos { list-style: none; padding: 0; max-width: 500px; margin: 15px auto; text-align: left; background: #2d2d2d; border-radius: 10px; max-height: 350px; overflow-y: auto; }
-        #lista-escaneos li { padding: 10px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
+        h2 { color: #007bff; margin-bottom: 5px; font-size: 1.5rem; }
 
-        .btn { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; font-size: 14px; }
-        .btn-verde { background: #28a745; width: 100%; margin-top: 5px; }
-        .btn-azul { background: #007bff; }
-        .btn-gris { background: #6c757d; }
-        .btn-rojo { background: #dc3545; padding: 5px 10px; }
-        
-        .contador { font-size: 1.8em; color: #ffc107; font-weight: bold; margin-bottom: 10px; }
-        .txt-azul { color: #007bff; font-weight: bold; }
+        .contador { 
+            font-size: 2rem; 
+            color: #ffc107; 
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 10px;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        /* Contenedor de Cámara */
+        #reader { 
+            width: 100%; 
+            max-width: 500px; 
+            margin: auto; 
+            border: 4px solid #007bff; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            background: black; 
+            transition: border-color 0.3s ease;
+        }
+
+        /* Sección Manual */
+        .seccion-manual { 
+            background: #252525; 
+            padding: 15px; 
+            border-radius: 15px; 
+            margin: 15px auto; 
+            max-width: 500px; 
+            border: 1px solid #444; 
+        }
+
+        .input-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+
+        input { 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #555; 
+            background: #333; 
+            color: white; 
+            font-size: 16px; 
+        }
+
+        /* Botones */
+        .controles { 
+            margin: 15px 0; 
+            display: flex; 
+            gap: 10px; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+        }
+
+        .btn { 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            color: white; 
+            font-size: 14px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-verde { background: #28a745; width: 100%; font-size: 16px; }
+        .btn-azul { background: #007bff; flex: 1; }
+        .btn-gris { background: #495057; flex: 1; }
+        .btn-rojo { background: #dc3545; padding: 8px 12px; font-size: 12px; }
+
+        /* Lista de Historial */
+        #lista-escaneos { 
+            list-style: none; 
+            padding: 0; 
+            max-width: 500px; 
+            margin: 15px auto; 
+            text-align: left; 
+            background: #1e1e1e; 
+            border-radius: 12px; 
+            max-height: 350px; 
+            overflow-y: auto; 
+        }
+
+        #lista-escaneos li { 
+            padding: 12px; 
+            border-bottom: 1px solid #333; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .item-info b { color: #007bff; font-size: 1.1em; display: block; }
+        .item-info small { color: #888; }
     </style>
 </head>
 <body>
 
     <h2>📦 Captura de Cajas</h2>
-    <div class="contador">Total Items: <span id="total-count">0</span></div>
+    <div class="contador">Total: <span id="total-count">0</span></div>
     
     <div id="reader"></div>
 
     <div class="seccion-manual">
-        <div style="margin-bottom: 10px; font-weight: bold; color: #aaa;">Entrada Manual / Corrección</div>
         <div class="input-group">
-            <input type="text" id="manual-code" placeholder="Código de barras">
-            <input type="number" id="manual-qty" value="1" placeholder="Cantidad">
+            <input type="text" id="manual-code" placeholder="Escribir código manualmente">
+            <input type="number" id="manual-qty" value="1" min="1" placeholder="Cantidad">
             <button class="btn btn-verde" onclick="agregarManual()">➕ Agregar a la Lista</button>
         </div>
     </div>
 
     <div class="controles">
         <button id="torch-button" class="btn btn-azul" onclick="toggleFlash()">🔦 Linterna</button>
-        <button class="btn btn-azul" onclick="copiarLista()">📋 Copiar</button>
+        <button class="btn btn-azul" onclick="copiarLista()">📋 Copiar Todo</button>
         <button class="btn btn-gris" onclick="borrarTodo()">🗑️ Limpiar</button>
     </div>
 
@@ -57,46 +148,33 @@
     <script>
         const listaUI = document.getElementById('lista-escaneos');
         const totalUI = document.getElementById('total-count');
+        const readerUI = document.getElementById('reader');
         const beep = document.getElementById('beep');
         
         let codigosGuardados = JSON.parse(localStorage.getItem('mis_escaneos')) || [];
         let html5QrCode;
         let isFlashOn = false;
+        let escaneandoBloqueado = false;
 
         function actualizarInterfaz() {
             listaUI.innerHTML = "";
             let sumaTotal = 0;
+            
             codigosGuardados.forEach((item, index) => {
                 sumaTotal += parseInt(item.cantidad);
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <div>
-                        <span class="txt-azul">${item.codigo}</span> <br>
+                    <div class="item-info">
+                        <b>${item.codigo}</b>
                         <small>Cant: ${item.cantidad} | ${item.hora}</small>
                     </div>
-                    <button class="btn btn-rojo" onclick="eliminarFila(${index})">X</button>
+                    <button class="btn btn-rojo" onclick="eliminarFila(${index})">Eliminar</button>
                 `;
                 listaUI.appendChild(li);
             });
+            
             totalUI.innerText = sumaTotal;
             localStorage.setItem('mis_escaneos', JSON.stringify(codigosGuardados));
-        }
-
-        // AGREGAR MANUALMENTE
-        function agregarManual() {
-            const codeInput = document.getElementById('manual-code');
-            const qtyInput = document.getElementById('manual-qty');
-            
-            if (codeInput.value.trim() === "") {
-                alert("Por favor escribe un código");
-                return;
-            }
-
-            registrarCodigo(codeInput.value.trim(), qtyInput.value || 1);
-            
-            // Limpiar campos
-            codeInput.value = "";
-            qtyInput.value = 1;
         }
 
         function registrarCodigo(codigo, cantidad) {
@@ -112,20 +190,44 @@
         }
 
         function alDetectarCodigo(decodedText) {
-            // Al escanear, la cantidad siempre es 1 por defecto
+            if (escaneandoBloqueado) return;
+
+            escaneandoBloqueado = true;
+            readerUI.style.borderColor = "#28a745"; // Verde de éxito
+            
             registrarCodigo(decodedText, 1);
+
+            // Pausa de 2.5 segundos para evitar múltiples lecturas del mismo código
+            setTimeout(() => {
+                escaneandoBloqueado = false;
+                readerUI.style.borderColor = "#007bff"; // Vuelve a azul
+            }, 2500);
         }
 
-        // LINTERNA
+        function agregarManual() {
+            const codeInput = document.getElementById('manual-code');
+            const qtyInput = document.getElementById('manual-qty');
+            const valor = codeInput.value.trim();
+            const cantidad = parseInt(qtyInput.value) || 1;
+
+            if (valor === "") {
+                alert("Escribe un código primero.");
+                return;
+            }
+
+            registrarCodigo(valor, cantidad);
+            codeInput.value = "";
+            qtyInput.value = 1;
+        }
+
         function toggleFlash() {
             isFlashOn = !isFlashOn;
             const track = html5QrCode.getRunningTrack();
             if (track && track.getCapabilities().torch) {
-                track.applyConstraints({
-                    advanced: [{ torch: isFlashOn }]
-                });
+                track.applyConstraints({ advanced: [{ torch: isFlashOn }] })
+                .catch(e => console.log("Error linterna:", e));
             } else {
-                alert("La linterna no es compatible con este navegador/celular.");
+                alert("Linterna no soportada en este dispositivo.");
             }
         }
 
@@ -135,23 +237,34 @@
         }
 
         function copiarLista() {
+            if (codigosGuardados.length === 0) return alert("La lista está vacía.");
             const texto = codigosGuardados.map(c => `${c.codigo}\t${c.cantidad}`).join('\n');
             navigator.clipboard.writeText(texto);
-            alert("¡Lista copiada!");
+            alert("¡Copiado al portapapeles! Listo para pegar en Excel.");
         }
 
         function borrarTodo() {
-            if(confirm("¿Borrar todo?")) {
+            if(confirm("¿Seguro que quieres borrar toda la lista actual?")) {
                 codigosGuardados = [];
                 actualizarInterfaz();
             }
         }
 
-        // Iniciar escáner mejorado
+        // Inicializar cámara
         html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 20, qrbox: { width: 300, height: 150 } };
-        
-        html5QrCode.start({ facingMode: "environment" }, config, alDetectarCodigo);
+        const config = { 
+            fps: 20, 
+            qrbox: { width: 300, height: 150 },
+            aspectRatio: 1.0
+        };
+
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            alDetectarCodigo
+        ).catch(err => {
+            console.error("Error al iniciar cámara", err);
+        });
         
         actualizarInterfaz();
     </script>
