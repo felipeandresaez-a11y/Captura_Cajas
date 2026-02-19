@@ -3,72 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner Pro - Captura Cajas</title>
+    <title>Captura Cajas Pro - Edición</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; padding: 20px; background-color: #1a1a1a; color: white; }
+        body { font-family: sans-serif; text-align: center; margin: 0; padding: 20px; background-color: #1a1a1a; color: white; }
         #reader { width: 100%; max-width: 600px; margin: auto; border: 2px solid #007bff; border-radius: 15px; overflow: hidden; background: black; }
-        .controles { margin: 20px 0; }
-        #lista-escaneos { list-style: none; padding: 0; max-width: 500px; margin: 20px auto; text-align: left; background: #2d2d2d; border-radius: 10px; }
-        #lista-escaneos li { padding: 10px; border-bottom: 1px solid #444; display: flex; justify-content: space-between; }
-        .btn-copiar { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .btn-copiar:active { background: #218838; }
-        h2 { color: #007bff; }
+        
+        .controles { margin: 20px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        
+        #lista-escaneos { list-style: none; padding: 0; max-width: 500px; margin: 20px auto; text-align: left; background: #2d2d2d; border-radius: 10px; max-height: 400px; overflow-y: auto; }
+        
+        #lista-escaneos li { 
+            padding: 12px; 
+            border-bottom: 1px solid #444; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+
+        .info-codigo { display: flex; flex-direction: column; }
+        .info-codigo b { color: #007bff; font-size: 1.1em; }
+        .info-codigo small { color: #aaa; }
+
+        .btn { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-copiar { background: #28a745; }
+        .btn-borrar-todo { background: #6c757d; }
+        .btn-eliminar-fila { background: #dc3545; padding: 5px 10px; font-size: 0.8em; }
+        
+        h2 { color: #007bff; margin-bottom: 5px; }
+        .contador { font-size: 1.5em; color: #ffc107; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <h2>📦 Captura de Cajas</h2>
+    <div class="contador">Total: <span id="total-count">0</span></div>
     
     <div id="reader"></div>
 
     <div class="controles">
-        <button class="btn-copiar" onclick="copiarLista()">📋 Copiar Lista Completa</button>
+        <button class="btn btn-copiar" onclick="copiarLista()">📋 Copiar Lista</button>
+        <button class="btn btn-borrar-todo" onclick="borrarTodo()">🗑️ Limpiar Todo</button>
     </div>
 
-    <h3>Historial de Escaneos:</h3>
     <ul id="lista-escaneos"></ul>
 
     <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
     <script>
         const listaUI = document.getElementById('lista-escaneos');
+        const totalUI = document.getElementById('total-count');
         const beep = document.getElementById('beep');
-        let codigosGuardados = [];
+        
+        let codigosGuardados = JSON.parse(localStorage.getItem('mis_escaneos')) || [];
+        let ultimoEscaneo = "";
+        let tiempoUltimoEscaneo = 0;
+
+        function actualizarInterfaz() {
+            listaUI.innerHTML = "";
+            codigosGuardados.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="info-codigo">
+                        <b>${item.codigo}</b>
+                        <small>${item.hora}</small>
+                    </div>
+                    <button class="btn btn-eliminar-fila" onclick="eliminarFila(${index})">Eliminar</button>
+                `;
+                listaUI.appendChild(li);
+            });
+            totalUI.innerText = codigosGuardados.length;
+            localStorage.setItem('mis_escaneos', JSON.stringify(codigosGuardados));
+        }
 
         function alDetectarCodigo(decodedText) {
-            // Evitar escaneos duplicados seguidos muy rápido
-            if (codigosGuardados[0] === decodedText) return;
+            const ahora = Date.now();
+            if (decodedText === ultimoEscaneo && (ahora - tiempoUltimoEscaneo) < 2500) return; 
 
-            // 1. Sonido y Vibración
             beep.play();
             if (navigator.vibrate) navigator.vibrate(100);
 
-            // 2. Guardar en la lista
-            codigosGuardados.unshift(decodedText); // Agrega al inicio
+            ultimoEscaneo = decodedText;
+            tiempoUltimoEscaneo = ahora;
+
+            codigosGuardados.unshift({
+                codigo: decodedText,
+                hora: new Date().toLocaleTimeString()
+            });
             
-            // 3. Actualizar la pantalla
-            const nuevoElemento = document.createElement('li');
-            nuevoElemento.innerHTML = `<span>${decodedText}</span> <small>${new Date().toLocaleTimeString()}</small>`;
-            listaUI.prepend(nuevoElemento);
+            actualizarInterfaz();
+        }
+
+        // NUEVA FUNCIÓN: Eliminar una fila específica
+        function eliminarFila(index) {
+            codigosGuardados.splice(index, 1); // Quita el elemento del arreglo
+            actualizarInterfaz(); // Refresca la lista en pantalla
         }
 
         function copiarLista() {
-            const textoParaCopiar = codigosGuardados.join('\n');
-            navigator.clipboard.writeText(textoParaCopiar);
+            const texto = codigosGuardados.map(c => c.codigo).join('\n');
+            navigator.clipboard.writeText(texto);
             alert("¡Lista copiada al portapapeles!");
         }
 
-        // Configuración con visor rectangular para cajas
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { 
-                fps: 15, 
-                qrbox: { width: 300, height: 150 }, // Rectángulo para barras
-                aspectRatio: 1.0 
+        function borrarTodo() {
+            if(confirm("¿Estás seguro de borrar TODA la lista?")) {
+                codigosGuardados = [];
+                actualizarInterfaz();
             }
-        );
+        }
 
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 15, qrbox: { width: 300, height: 150 } }
+        );
         html5QrcodeScanner.render(alDetectarCodigo);
+        
+        actualizarInterfaz();
     </script>
 </body>
 </html>
