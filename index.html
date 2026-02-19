@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Escáner de Códigos</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f4; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: white; padding: 10px; border-radius: 10px; }
+        #resultado { margin-top: 20px; font-size: 1.2em; font-weight: bold; color: #007bff; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+    <h1>Escáner de Códigos</h1>
+    <p>Dale permiso a la cámara para empezar</p>
+    
+    <div id="reader"></div>
+    
+    <div id="resultado">Esperando código...</div>
+
+    <script>
+        function alDetectarCodigo(decodedText, decodedResult) {
+            // Lo que pasa cuando encuentra un código
+            document.getElementById('resultado').innerText = "Código detectado: " + decodedText;
+            console.log(`Código: ${decodedText}`, decodedResult);
+        }
+
+        function alTenerError(err) {
+            // Errores de lectura (normalmente se ignoran para que siga buscando)
+        }
+
+        // Configuración del escáner
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: {width: 250, height: 150} }
+        );
+
+        // Iniciar el escáner
+        html5QrcodeScanner.render(alDetectarCodigo, alTenerError);
+    </script>
+
+</body>
+</html>
