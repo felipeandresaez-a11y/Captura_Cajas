@@ -3,119 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Captura Cajas Pro - Sistema Completo</title>
+    <title>Captura Cajas Pro - Sonido Corregido</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* Diseño Visual */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            text-align: center; 
-            margin: 0; 
-            padding: 15px; 
-            background-color: #121212; 
-            color: #e0e0e0; 
+            text-align: center; margin: 0; padding: 15px; background-color: #121212; color: #e0e0e0; 
         }
-
         h2 { color: #007bff; margin-bottom: 5px; font-size: 1.5rem; }
-
         .contador { 
-            font-size: 2rem; 
-            color: #ffc107; 
-            font-weight: bold; 
-            margin-bottom: 15px; 
-            background: #1e1e1e;
-            padding: 10px;
-            border-radius: 10px;
-            display: inline-block;
-            min-width: 150px;
+            font-size: 2rem; color: #ffc107; font-weight: bold; margin-bottom: 15px; 
+            background: #1e1e1e; padding: 10px; border-radius: 10px; display: inline-block; min-width: 150px;
         }
-
-        /* Contenedor de Cámara */
         #reader { 
-            width: 100%; 
-            max-width: 500px; 
-            margin: auto; 
-            border: 4px solid #007bff; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            background: black; 
-            transition: border-color 0.3s ease;
+            width: 100%; max-width: 500px; margin: auto; border: 4px solid #007bff; 
+            border-radius: 20px; overflow: hidden; background: black; transition: border-color 0.3s ease;
         }
-
-        /* Sección Manual */
         .seccion-manual { 
-            background: #252525; 
-            padding: 15px; 
-            border-radius: 15px; 
-            margin: 15px auto; 
-            max-width: 500px; 
-            border: 1px solid #444; 
+            background: #252525; padding: 15px; border-radius: 15px; margin: 15px auto; 
+            max-width: 500px; border: 1px solid #444; 
         }
-
-        .input-group { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-        }
-
-        input { 
-            padding: 12px; 
-            border-radius: 8px; 
-            border: 1px solid #555; 
-            background: #333; 
-            color: white; 
-            font-size: 16px; 
-        }
-
-        /* Botones */
-        .controles { 
-            margin: 15px 0; 
-            display: flex; 
-            gap: 10px; 
-            justify-content: center; 
-            flex-wrap: wrap; 
-        }
-
-        .btn { 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            color: white; 
-            font-size: 14px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-
+        .input-group { display: flex; flex-direction: column; gap: 10px; }
+        input { padding: 12px; border-radius: 8px; border: 1px solid #555; background: #333; color: white; font-size: 16px; }
+        .controles { margin: 15px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn { border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .btn-verde { background: #28a745; width: 100%; font-size: 16px; }
         .btn-azul { background: #007bff; flex: 1; }
         .btn-gris { background: #495057; flex: 1; }
         .btn-rojo { background: #dc3545; padding: 8px 12px; font-size: 12px; }
-
-        /* Lista de Historial */
-        #lista-escaneos { 
-            list-style: none; 
-            padding: 0; 
-            max-width: 500px; 
-            margin: 15px auto; 
-            text-align: left; 
-            background: #1e1e1e; 
-            border-radius: 12px; 
-            max-height: 350px; 
-            overflow-y: auto; 
-        }
-
-        #lista-escaneos li { 
-            padding: 12px; 
-            border-bottom: 1px solid #333; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-
+        #lista-escaneos { list-style: none; padding: 0; max-width: 500px; margin: 15px auto; text-align: left; background: #1e1e1e; border-radius: 12px; max-height: 350px; overflow-y: auto; }
+        #lista-escaneos li { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .item-info b { color: #007bff; font-size: 1.1em; display: block; }
         .item-info small { color: #888; }
     </style>
@@ -143,7 +60,7 @@
 
     <ul id="lista-escaneos"></ul>
 
-    <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+    <audio id="beep" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
 
     <script>
         const listaUI = document.getElementById('lista-escaneos');
@@ -156,10 +73,17 @@
         let isFlashOn = false;
         let escaneandoBloqueado = false;
 
+        // FUNCIÓN CLAVE: Desbloquea el audio en móviles
+        function activarSonido() {
+            beep.play().then(() => {
+                beep.pause();
+                beep.currentTime = 0;
+            }).catch(e => console.log("Esperando interacción para audio"));
+        }
+
         function actualizarInterfaz() {
             listaUI.innerHTML = "";
             let sumaTotal = 0;
-            
             codigosGuardados.forEach((item, index) => {
                 sumaTotal += parseInt(item.cantidad);
                 const li = document.createElement('li');
@@ -172,13 +96,15 @@
                 `;
                 listaUI.appendChild(li);
             });
-            
             totalUI.innerText = sumaTotal;
             localStorage.setItem('mis_escaneos', JSON.stringify(codigosGuardados));
         }
 
         function registrarCodigo(codigo, cantidad) {
-            beep.play();
+            // Intentar reproducir sonido
+            beep.currentTime = 0;
+            beep.play().catch(err => console.log("Audio bloqueado aún"));
+            
             if (navigator.vibrate) navigator.vibrate(100);
 
             codigosGuardados.unshift({
@@ -191,43 +117,34 @@
 
         function alDetectarCodigo(decodedText) {
             if (escaneandoBloqueado) return;
-
             escaneandoBloqueado = true;
-            readerUI.style.borderColor = "#28a745"; // Verde de éxito
-            
+            readerUI.style.borderColor = "#28a745";
             registrarCodigo(decodedText, 1);
-
-            // Pausa de 2.5 segundos para evitar múltiples lecturas del mismo código
             setTimeout(() => {
                 escaneandoBloqueado = false;
-                readerUI.style.borderColor = "#007bff"; // Vuelve a azul
+                readerUI.style.borderColor = "#007bff";
             }, 2500);
         }
 
         function agregarManual() {
+            activarSonido(); // Desbloquea audio al tocar botón
             const codeInput = document.getElementById('manual-code');
             const qtyInput = document.getElementById('manual-qty');
             const valor = codeInput.value.trim();
-            const cantidad = parseInt(qtyInput.value) || 1;
-
-            if (valor === "") {
-                alert("Escribe un código primero.");
-                return;
-            }
-
-            registrarCodigo(valor, cantidad);
+            if (valor === "") return alert("Escribe un código");
+            registrarCodigo(valor, parseInt(qtyInput.value) || 1);
             codeInput.value = "";
             qtyInput.value = 1;
         }
 
         function toggleFlash() {
+            activarSonido();
             isFlashOn = !isFlashOn;
             const track = html5QrCode.getRunningTrack();
             if (track && track.getCapabilities().torch) {
-                track.applyConstraints({ advanced: [{ torch: isFlashOn }] })
-                .catch(e => console.log("Error linterna:", e));
+                track.applyConstraints({ advanced: [{ torch: isFlashOn }] });
             } else {
-                alert("Linterna no soportada en este dispositivo.");
+                alert("Linterna no soportada.");
             }
         }
 
@@ -237,35 +154,25 @@
         }
 
         function copiarLista() {
-            if (codigosGuardados.length === 0) return alert("La lista está vacía.");
             const texto = codigosGuardados.map(c => `${c.codigo}\t${c.cantidad}`).join('\n');
             navigator.clipboard.writeText(texto);
-            alert("¡Copiado al portapapeles! Listo para pegar en Excel.");
+            alert("¡Copiado!");
         }
 
         function borrarTodo() {
-            if(confirm("¿Seguro que quieres borrar toda la lista actual?")) {
+            if(confirm("¿Borrar lista?")) {
                 codigosGuardados = [];
                 actualizarInterfaz();
             }
         }
 
-        // Inicializar cámara
         html5QrCode = new Html5Qrcode("reader");
-        const config = { 
-            fps: 20, 
-            qrbox: { width: 300, height: 150 },
-            aspectRatio: 1.0
-        };
+        const config = { fps: 20, qrbox: { width: 300, height: 150 }, aspectRatio: 1.0 };
 
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            alDetectarCodigo
-        ).catch(err => {
-            console.error("Error al iniciar cámara", err);
-        });
-        
+        // Al iniciar, pedimos un toque para el audio
+        document.body.addEventListener('click', activarSonido, { once: true });
+
+        html5QrCode.start({ facingMode: "environment" }, config, alDetectarCodigo);
         actualizarInterfaz();
     </script>
 </body>
