@@ -2,178 +2,97 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Captura Cajas Pro - Sonido Corregido</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner de Productos - Seguridad FSP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            text-align: center; margin: 0; padding: 15px; background-color: #121212; color: #e0e0e0; 
-        }
-        h2 { color: #007bff; margin-bottom: 5px; font-size: 1.5rem; }
-        .contador { 
-            font-size: 2rem; color: #ffc107; font-weight: bold; margin-bottom: 15px; 
-            background: #1e1e1e; padding: 10px; border-radius: 10px; display: inline-block; min-width: 150px;
-        }
-        #reader { 
-            width: 100%; max-width: 500px; margin: auto; border: 4px solid #007bff; 
-            border-radius: 20px; overflow: hidden; background: black; transition: border-color 0.3s ease;
-        }
-        .seccion-manual { 
-            background: #252525; padding: 15px; border-radius: 15px; margin: 15px auto; 
-            max-width: 500px; border: 1px solid #444; 
-        }
-        .input-group { display: flex; flex-direction: column; gap: 10px; }
-        input { padding: 12px; border-radius: 8px; border: 1px solid #555; background: #333; color: white; font-size: 16px; }
-        .controles { margin: 15px 0; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .btn { border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-verde { background: #28a745; width: 100%; font-size: 16px; }
-        .btn-azul { background: #007bff; flex: 1; }
-        .btn-gris { background: #495057; flex: 1; }
-        .btn-rojo { background: #dc3545; padding: 8px 12px; font-size: 12px; }
-        #lista-escaneos { list-style: none; padding: 0; max-width: 500px; margin: 15px auto; text-align: left; background: #1e1e1e; border-radius: 12px; max-height: 350px; overflow-y: auto; }
-        #lista-escaneos li { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .item-info b { color: #007bff; font-size: 1.1em; display: block; }
-        .item-info small { color: #888; }
+        body { font-family: sans-serif; text-align: center; margin: 0; background: #f4f4f9; }
+        #interactive { width: 100%; height: 300px; background: #000; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .controls { padding: 20px; }
+        #resultado { font-size: 1.5em; font-weight: bold; color: #2c3e50; margin: 10px 0; }
+        .historial { text-align: left; padding: 15px; background: white; margin: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; }
+        .badge-success { color: green; font-size: 0.8em; }
     </style>
 </head>
 <body>
 
-    <h2>📦 Captura de Cajas</h2>
-    <div class="contador">Total: <span id="total-count">0</span></div>
+    <h2>Scanner de Seguridad</h2>
+    <div id="interactive" class="viewport"></div>
     
-    <div id="reader"></div>
-
-    <div class="seccion-manual">
-        <div class="input-group">
-            <input type="text" id="manual-code" placeholder="Escribir código manualmente">
-            <input type="number" id="manual-qty" value="1" min="1" placeholder="Cantidad">
-            <button class="btn btn-verde" onclick="agregarManual()">➕ Agregar a la Lista</button>
-        </div>
+    <div class="controls">
+        <div id="resultado">Esperando código...</div>
+        <button onclick="iniciarEscaneo()" style="padding: 10px 20px; font-size: 1em;">Reiniciar Cámara</button>
     </div>
 
-    <div class="controles">
-        <button id="torch-button" class="btn btn-azul" onclick="toggleFlash()">🔦 Linterna</button>
-        <button class="btn btn-azul" onclick="copiarLista()">📋 Copiar Todo</button>
-        <button class="btn btn-gris" onclick="borrarTodo()">🗑️ Limpiar</button>
+    <div class="historial" id="historial">
+        <strong>Últimos escaneos:</strong>
+        <ul id="lista-historial"></ul>
     </div>
-
-    <ul id="lista-escaneos"></ul>
-
-    <audio id="beep" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
 
     <script>
-        const listaUI = document.getElementById('lista-escaneos');
-        const totalUI = document.getElementById('total-count');
-        const readerUI = document.getElementById('reader');
-        const beep = document.getElementById('beep');
+        // Configuración de Google Forms
+        const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf0EUNKx74w6MbGT_MPiubF9W9mCOuQq3YitSh2IvUIcmG8Pg/formResponse";
         
-        let codigosGuardados = JSON.parse(localStorage.getItem('mis_escaneos')) || [];
-        let html5QrCode;
-        let isFlashOn = false;
-        let escaneandoBloqueado = false;
-
-        // FUNCIÓN CLAVE: Desbloquea el audio en móviles
-        function activarSonido() {
-            beep.play().then(() => {
-                beep.pause();
-                beep.currentTime = 0;
-            }).catch(e => console.log("Esperando interacción para audio"));
-        }
-
-        function actualizarInterfaz() {
-            listaUI.innerHTML = "";
-            let sumaTotal = 0;
-            codigosGuardados.forEach((item, index) => {
-                sumaTotal += parseInt(item.cantidad);
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="item-info">
-                        <b>${item.codigo}</b>
-                        <small>Cant: ${item.cantidad} | ${item.hora}</small>
-                    </div>
-                    <button class="btn btn-rojo" onclick="eliminarFila(${index})">Eliminar</button>
-                `;
-                listaUI.appendChild(li);
+        function iniciarEscaneo() {
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#interactive'),
+                    constraints: { facingMode: "environment" } // Usa la cámara trasera
+                },
+                decoder: {
+                    readers: ["ean_reader", "code_128_reader", "ean_8_reader"] // Formatos típicos de retail
+                }
+            }, function(err) {
+                if (err) { console.log(err); return }
+                Quagga.start();
             });
-            totalUI.innerText = sumaTotal;
-            localStorage.setItem('mis_escaneos', JSON.stringify(codigosGuardados));
         }
 
-        function registrarCodigo(codigo, cantidad) {
-            // Intentar reproducir sonido
-            beep.currentTime = 0;
-            beep.play().catch(err => console.log("Audio bloqueado aún"));
+        // Al detectar un código
+        Quagga.onDetected(function(data) {
+            const code = data.codeResult.code;
+            document.getElementById('resultado').innerText = "Detectado: " + code;
             
-            if (navigator.vibrate) navigator.vibrate(100);
+            // Pausamos un segundo para evitar múltiples envíos del mismo código
+            Quagga.stop();
+            enviarAGoogle(code);
+            
+            // Reiniciamos después de 2 segundos para el siguiente producto
+            setTimeout(() => { iniciarEscaneo(); }, 2000);
+        });
 
-            codigosGuardados.unshift({
-                codigo: codigo,
-                cantidad: cantidad,
-                hora: new Date().toLocaleTimeString()
-            });
-            actualizarInterfaz();
-        }
+        async function enviarAGoogle(codigo) {
+            const formData = new URLSearchParams();
+            // Tus IDs específicos
+            formData.append('entry.24310667', 'D001-CHILLAN');
+            formData.append('entry.404578387', 'Con Recuperación');
+            formData.append('entry.1966026737', codigo); // El producto escaneado
+            formData.append('entry.1707646492', '17:00'); 
+            formData.append('entry.1997818687', '17:10');
 
-        function alDetectarCodigo(decodedText) {
-            if (escaneandoBloqueado) return;
-            escaneandoBloqueado = true;
-            readerUI.style.borderColor = "#28a745";
-            registrarCodigo(decodedText, 1);
-            setTimeout(() => {
-                escaneandoBloqueado = false;
-                readerUI.style.borderColor = "#007bff";
-            }, 2500);
-        }
-
-        function agregarManual() {
-            activarSonido(); // Desbloquea audio al tocar botón
-            const codeInput = document.getElementById('manual-code');
-            const qtyInput = document.getElementById('manual-qty');
-            const valor = codeInput.value.trim();
-            if (valor === "") return alert("Escribe un código");
-            registrarCodigo(valor, parseInt(qtyInput.value) || 1);
-            codeInput.value = "";
-            qtyInput.value = 1;
-        }
-
-        function toggleFlash() {
-            activarSonido();
-            isFlashOn = !isFlashOn;
-            const track = html5QrCode.getRunningTrack();
-            if (track && track.getCapabilities().torch) {
-                track.applyConstraints({ advanced: [{ torch: isFlashOn }] });
-            } else {
-                alert("Linterna no soportada.");
+            try {
+                await fetch(FORM_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+                actualizarHistorial(codigo);
+            } catch (e) {
+                console.error("Error enviando:", e);
             }
         }
 
-        function eliminarFila(index) {
-            codigosGuardados.splice(index, 1);
-            actualizarInterfaz();
+        function actualizarHistorial(codigo) {
+            const lista = document.getElementById('lista-historial');
+            const li = document.createElement('li');
+            li.innerHTML = `${codigo} <span class="badge-success">✓ Enviado</span>`;
+            lista.prepend(li);
         }
 
-        function copiarLista() {
-            const texto = codigosGuardados.map(c => `${c.codigo}\t${c.cantidad}`).join('\n');
-            navigator.clipboard.writeText(texto);
-            alert("¡Copiado!");
-        }
-
-        function borrarTodo() {
-            if(confirm("¿Borrar lista?")) {
-                codigosGuardados = [];
-                actualizarInterfaz();
-            }
-        }
-
-        html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 20, qrbox: { width: 300, height: 150 }, aspectRatio: 1.0 };
-
-        // Al iniciar, pedimos un toque para el audio
-        document.body.addEventListener('click', activarSonido, { once: true });
-
-        html5QrCode.start({ facingMode: "environment" }, config, alDetectarCodigo);
-        actualizarInterfaz();
+        iniciarEscaneo();
     </script>
 </body>
 </html>
