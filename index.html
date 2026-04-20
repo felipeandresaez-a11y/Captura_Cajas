@@ -3,74 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner FSP - Auditoría</title>
+    <title>Auditoría FSP - V2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8f9fa; color: #333; display: flex; flex-direction: column; height: 100vh; }
-        .header { background: #003399; color: white; padding: 10px; text-align: center; font-size: 0.9em; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; color: #333; }
+        .step { display: none; padding: 20px; }
+        .active { display: block; }
         
-        /* Contenedor Cámara */
-        #scanner-box { width: 100%; height: 200px; background: #000; position: relative; display: none; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        .overlay { position: absolute; top: 50%; left: 50%; width: 60%; height: 60px; border: 2px solid #4CAF50; transform: translate(-50%, -50%); pointer-events: none; }
+        /* Estilos UI */
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        .btn-primary { background: #003399; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-outline { background: white; border: 2px solid #003399; color: #003399; }
 
-        /* Controles */
-        .controls { padding: 15px; display: flex; gap: 10px; justify-content: center; }
-        button { border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-start { background: #28a745; color: white; }
-        .btn-stop { background: #dc3545; color: white; }
-        .btn-send { background: #003399; color: white; width: 90%; margin: 10px auto; display: block; }
-
-        /* Lista de Capturas */
-        .list-container { flex-grow: 1; overflow-y: auto; padding: 15px; background: white; margin: 10px; border-radius: 12px; border: 1px solid #ddd; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px dotted #ccc; }
-        .btn-delete { background: none; color: #dc3545; font-size: 1.2em; border: none; padding: 5px; }
-
-        /* Formulario invisible */
-        #hidden-form { display: none; }
+        /* Scanner */
+        #interactive { width: 100%; height: 200px; background: #000; border-radius: 8px; overflow: hidden; }
+        .item-list { max-height: 200px; overflow-y: auto; background: #fff; border: 1px solid #eee; border-radius: 8px; margin: 10px 0; }
+        .item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .delete-btn { color: #dc3545; font-weight: bold; border: none; background: none; }
     </style>
 </head>
 <body>
 
-    <div class="header">AUDITORÍA DE PRODUCTOS - FASHIONS PARK</div>
-
-    <div id="scanner-box">
-        <div id="interactive" class="viewport"></div>
-        <div class="overlay"></div>
+    <div id="step1" class="step active">
+        <div class="card">
+            <h2 style="color:#003399">Datos de Auditoría</h2>
+            <label>Tienda:</label>
+            <select id="tienda">
+                <option value="D001-CHILLAN">D001-CHILLAN</option>
+                <option value="D002-LA_FLORIDA">D002-LA FLORIDA</option>
+                <option value="D003-RANCAGUA">D003-RANCAGUA</option>
+            </select>
+            <label>RUT Auditor (sin puntos):</label>
+            <input type="text" id="rut" placeholder="12345678-9">
+            <button class="btn-primary" onclick="irAStep2()">Siguiente: Capturar Productos</button>
+        </div>
     </div>
 
-    <div class="controls">
-        <button id="btnToggle" class="btn-start" onclick="toggleCamara()">Iniciar Cámara</button>
-    </div>
+    <div id="step2" class="step">
+        <div class="card">
+            <div id="interactive" class="viewport"></div>
+            <div id="status" style="text-align:center; margin:10px; font-weight:bold; color:#28a745;">Cámara lista</div>
+            
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="manualCode" placeholder="Código Manual">
+                <button class="btn-outline" style="width:auto; margin:0;" onclick="agregarManual()">Añadir</button>
+            </div>
 
-    <div class="list-container">
-        <strong>Productos Capturados:</strong>
-        <div id="lista-codigos"></div>
+            <div class="item-list" id="lista"></div>
+            
+            <p style="font-size:0.8em; color:#666;">* Los códigos se separarán por coma automáticamente.</p>
+            <button class="btn-success" onclick="enviarFinal()">FINALIZAR Y ENVIAR</button>
+            <button class="btn-outline" onclick="location.reload()">Cancelar</button>
+        </div>
     </div>
-
-    <button class="btn-send" onclick="confirmarEnvio()">FINALIZAR Y ENVIAR AL FORMULARIO</button>
 
     <script>
         const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf0EUNKx74w6MbGT_MPiubF9W9mCOuQq3YitSh2IvUIcmG8Pg/formResponse";
-        let listado = [];
-        let camaraActiva = false;
+        let productos = [];
+        let isWaiting = false;
 
-        function toggleCamara() {
-            const box = document.getElementById('scanner-box');
-            const btn = document.getElementById('btnToggle');
-            
-            if (!camaraActiva) {
-                box.style.display = 'block';
-                btn.innerText = "Detener Cámara";
-                btn.className = "btn-stop";
-                iniciarQuagga();
-            } else {
-                box.style.display = 'none';
-                btn.innerText = "Iniciar Cámara";
-                btn.className = "btn-start";
-                Quagga.stop();
-            }
-            camaraActiva = !camaraActiva;
+        function irAStep2() {
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            iniciarQuagga();
         }
 
         function iniciarQuagga() {
@@ -82,54 +81,77 @@
 
         Quagga.onDetected((data) => {
             const code = data.codeResult.code;
-            if (!listado.includes(code)) {
-                listado.push(code);
-                renderizarLista();
-                if (navigator.vibrate) navigator.vibrate(50);
-            }
+            if (isWaiting) return; // Si está en pausa, no hace nada
+
+            isWaiting = true;
+            document.getElementById('status').innerText = "¡Capturado! Espere...";
+            document.getElementById('status').style.color = "#dc3545";
+
+            agregarProducto(code);
+
+            // DELAY: Espera 2.5 segundos antes de permitir otra captura
+            setTimeout(() => {
+                isWaiting = false;
+                document.getElementById('status').innerText = "Listo para el siguiente";
+                document.getElementById('status').style.color = "#28a745";
+            }, 2500);
         });
 
-        function renderizarLista() {
-            const container = document.getElementById('lista-codigos');
-            container.innerHTML = "";
-            listado.forEach((code, index) => {
-                container.innerHTML += `
-                    <div class="item">
-                        <span>${code}</span>
-                        <button class="btn-delete" onclick="eliminarFila(${index})">✕</button>
-                    </div>`;
-            });
+        function agregarManual() {
+            const val = document.getElementById('manualCode').value;
+            if(val) {
+                agregarProducto(val);
+                document.getElementById('manualCode').value = "";
+            }
         }
 
-        function eliminarFila(index) {
-            listado.splice(index, 1);
-            renderizarLista();
+        function agregarProducto(code) {
+            if (!productos.includes(code)) {
+                productos.push(code);
+                actualizarVista();
+                if (navigator.vibrate) navigator.vibrate(100);
+            }
         }
 
-        async function confirmarEnvio() {
-            if (listado.length === 0) return alert("No hay códigos capturados.");
+        function actualizarVista() {
+            const div = document.getElementById('lista');
+            div.innerHTML = productos.map((p, i) => `
+                <div class="item">
+                    <span>${p}</span>
+                    <button class="delete-btn" onclick="eliminar(${i})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function eliminar(idx) {
+            productos.splice(idx, 1);
+            actualizarVista();
+        }
+
+        async function enviarFinal() {
+            if (productos.length === 0) return alert("No hay productos.");
             
-            const confirmacion = confirm(`¿Enviar ${listado.length} productos al formulario?`);
-            if (confirmacion) {
-                // UNIMOS POR COMA: "780,781,782,"
-                const stringFinal = listado.join(",") + ",";
-                
-                const formData = new URLSearchParams();
-                formData.append('entry.24310667', 'D001-CHILLAN');
-                formData.append('entry.404578387', 'Con Recuperación');
-                formData.append('entry.1966026737', stringFinal); // Enviamos todo separado por comas
-                formData.append('entry.1707646492', new Date().toLocaleTimeString());
-                formData.append('entry.1997818687', '17:10');
+            const confirmacion = confirm(`Se enviarán ${productos.length} productos. ¿Confirmar?`);
+            if (!confirmacion) return;
 
-                try {
-                    await fetch(FORM_URL, { method: 'POST', mode: 'no-cors', body: formData });
-                    alert("¡Datos enviados con éxito!");
-                    listado = [];
-                    renderizarLista();
-                    if(camaraActiva) toggleCamara();
-                } catch (e) {
-                    alert("Error al enviar.");
-                }
+            const finalString = productos.join(",") + ",";
+            const tienda = document.getElementById('tienda').value;
+            const rut = document.getElementById('rut').value;
+
+            const formData = new URLSearchParams();
+            formData.append('entry.24310667', tienda);
+            formData.append('entry.714634507', rut); // Asumiendo que este es el ID de RUT
+            formData.append('entry.1966026737', finalString);
+            formData.append('entry.404578387', 'Con Recuperación');
+            formData.append('entry.1707646492', new Date().toLocaleTimeString());
+            formData.append('entry.1997818687', 'FINALIZADO');
+
+            try {
+                await fetch(FORM_URL, { method: 'POST', mode: 'no-cors', body: formData });
+                alert("Enviado correctamente a Google Sheets.");
+                location.reload();
+            } catch (e) {
+                alert("Error al enviar.");
             }
         }
     </script>
